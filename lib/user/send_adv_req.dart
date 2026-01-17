@@ -220,7 +220,7 @@ class _AddCaseSeState extends State<AddCaseSe> {
     if (picked != null) {
       setState(() {
         // Format: YYYY/MM/DD
-        dateController.text = "${picked.year}/${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}";
+        dateController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       });
     }
   }
@@ -373,7 +373,7 @@ class _AddCaseSeState extends State<AddCaseSe> {
         readOnly: true, // Prevents manual typing
         onTap: () => _selectDate(context), // Opens the date picker
         decoration: InputDecoration(
-          hintText: "YYYY/MM/DD",
+          hintText: "YYYY-MM-DD",
           hintStyle: TextStyle(color: kCoffeeMedium.withOpacity(0.5)),
           suffixIcon: const Icon(Icons.calendar_today, color: kCoffeeMedium),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),

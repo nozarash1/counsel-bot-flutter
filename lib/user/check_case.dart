@@ -108,7 +108,7 @@ class _check_caseState extends State<check_case> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Text Field
+                         // Text Field
                         TextFormField(
                           controller: caseController,
                           style: TextStyle(color: _textDark, fontWeight: FontWeight.w500),
@@ -191,7 +191,7 @@ class _check_caseState extends State<check_case> {
     final sh = await SharedPreferences.getInstance();
     String? url = sh.getString('url');
 
-    final api = Uri.parse('$url/flutter_login_post/');
+    final api = Uri.parse('$url/fetch_case/');
 
     try {
       final request = await http.post(api, body: {
@@ -203,6 +203,17 @@ class _check_caseState extends State<check_case> {
         if (data['status'] == 'ok') {
           Fluttertoast.showToast(msg: 'Success');
           // Navigate or Perform next action here
+
+    //       "section":ob.section,
+    // "details":ob.details,
+    // "punishment":ob.punish
+          print(data['section']);
+          print(data['details']);
+          print(data['punishment']);
+
+
+
+
         } else {
           Fluttertoast.showToast(msg: 'Failed: Case not found');
         }

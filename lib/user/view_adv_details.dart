@@ -303,8 +303,9 @@ class _ViewAdvDetailsState extends State<ViewAdvDetails> {
 
                 final sh = await  SharedPreferences.getInstance();
                 sh.setString('aid', id);
+                sh.setString('name', name);
 
-            Navigator.push(context, MaterialPageRoute(builder: (context)=>AddCaseSe(advocateName: '',)));
+            Navigator.push(context, MaterialPageRoute(builder: (context)=>AddCaseSe(advocateName:name,)));
 
               },
               style: ElevatedButton.styleFrom(
