@@ -146,7 +146,7 @@ class _UserHomeState extends State<UserHome> {
                           subtitle: "Track status",
                           icon: Icons.gavel,
                           onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => check_case()));
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => CheckCase()));
                           },
                         ),
 
