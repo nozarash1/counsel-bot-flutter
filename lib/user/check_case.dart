@@ -21,9 +21,10 @@ class CheckCase extends StatefulWidget {
   State<CheckCase> createState() => _CheckCaseState();
 }
 
-class _CheckCaseState extends State<CheckCase> {
+class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
   final TextEditingController _caseController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
 
   // State management: 0 = Landing, 1 = Chat, 2 = Results
   int _currentStep = 0;
@@ -75,7 +76,9 @@ class _CheckCaseState extends State<CheckCase> {
         ),
       ),
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 500),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
         child: _buildBody(),
       ),
     );
@@ -165,21 +168,44 @@ class _CheckCaseState extends State<CheckCase> {
       key: const ValueKey('chat'),
       children: [
         Expanded(
-          child: ListView.builder(
-            controller: _chatScrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            itemCount: _chatMessages.length + (_isAiTyping ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index == _chatMessages.length && _isAiTyping) {
-                return _buildAiTypingIndicator();
-              }
-              final msg = _chatMessages[index];
-              return _buildChatBubble(msg);
-            },
+          child: Stack(
+            children: [
+              AnimatedList(
+                key: _listKey,
+                controller: _chatScrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                initialItemCount: _chatMessages.length,
+                itemBuilder: (context, index, animation) {
+                  return _buildAnimatedBubble(_chatMessages[index], animation);
+                },
+              ),
+              if (_isAiTyping)
+                Positioned(
+                  bottom: 10,
+                  left: 16,
+                  child: _buildAiTypingIndicator(),
+                ),
+            ],
           ),
         ),
         _buildChatFooter(),
       ],
+    );
+  }
+
+  Widget _buildAnimatedBubble(ChatMessageModel msg, Animation<double> animation) {
+    return SizeTransition(
+      sizeFactor: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: animation.drive(
+            Tween<Offset>(begin: const Offset(0.0, 0.2), end: Offset.zero)
+                .chain(CurveTween(curve: Curves.easeOutQuart)),
+          ),
+          child: _buildChatBubble(msg),
+        ),
+      ),
     );
   }
 
@@ -194,7 +220,8 @@ class _CheckCaseState extends State<CheckCase> {
           children: [
             if (isAi) _buildAiAvatar(),
             Flexible(
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
                 padding: const EdgeInsets.all(14),
                 margin: EdgeInsets.only(left: isAi ? 8 : 50, right: isAi ? 50 : 8, bottom: 4),
                 decoration: BoxDecoration(
@@ -231,16 +258,29 @@ class _CheckCaseState extends State<CheckCase> {
   }
 
   Widget _buildOptionButton(int qId, String label) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: kCounselDark,
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: kCounselDark, width: 0.5)),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 500),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.scale(
+            scale: 0.8 + (0.2 * value),
+            child: child,
+          ),
+        );
+      },
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: kCounselDark,
+          elevation: 1,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: kCounselDark, width: 0.5)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        ),
+        onPressed: () => _handleUserResponse(qId, label),
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
-      onPressed: () => _handleUserResponse(qId, label),
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
@@ -253,29 +293,64 @@ class _CheckCaseState extends State<CheckCase> {
   }
 
   Widget _buildAiTypingIndicator() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          _buildAiAvatar(),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(color: kAiBubble, borderRadius: BorderRadius.circular(16)),
-            child: const Text("Typing...", style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
-          ),
-        ],
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 300),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Opacity(opacity: value, child: child);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            _buildAiAvatar(),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: kAiBubble,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(3, (i) => _buildTypingDot(i)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  Widget _buildTypingDot(int index) {
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 600 + (index * 200)),
+      tween: Tween(begin: 0.2, end: 1.0),
+      builder: (context, value, child) {
+        return Container(
+          width: 6,
+          height: 6,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: kCounselDark.withOpacity(value),
+            shape: BoxShape.circle,
+          ),
+        );
+      },
+      onEnd: () {}, // Handled by standard loop logic if using AnimationController, but simple enough for Tween
+    );
+  }
+
   Widget _buildChatFooter() {
-    // Show the final search button only when all questions are answered
     bool allAnswered = _responses.length == _allQuestions.length && _allQuestions.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(20),
-      color: kCounselDark,
+      decoration: const BoxDecoration(
+        color: kCounselDark,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       child: SizedBox(
         width: double.infinity,
         height: 55,
@@ -285,11 +360,11 @@ class _CheckCaseState extends State<CheckCase> {
             backgroundColor: kCounselHeading,
             foregroundColor: kCounselDark,
             disabledBackgroundColor: kCounselHeading.withOpacity(0.3),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: _isLoading
               ? const CircularProgressIndicator(color: kCounselDark)
-              : Text(allAnswered ? "SEARCH SECTION" : "ANSWER ALL QUESTIONS",
+              : Text(allAnswered ? "SEARCH SECTION" : "COMPLETE THE INTERVIEW",
               style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
         ),
       ),
@@ -306,27 +381,33 @@ class _CheckCaseState extends State<CheckCase> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Center(child: Text("LEGAL ANALYSIS", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kCoffeeMedium, letterSpacing: 1.5))),
-                const Divider(height: 32),
-                Text(_caseResult!['section'] ?? "Section Details", style: const TextStyle(fontSize: 24, fontFamily: 'serif', fontWeight: FontWeight.bold, color: kCounselDark)),
-                const SizedBox(height: 20),
-                _buildInfoLabel("DESCRIPTION"),
-                Text(_caseResult!['details'] ?? "N/A", style: const TextStyle(color: Colors.black87, fontSize: 15, height: 1.5)),
-                const SizedBox(height: 20),
-                _buildInfoLabel("GENERAL PUNISHMENT"),
-                Text(_caseResult!['punishment'] ?? "N/A", style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.w600, fontSize: 15)),
-              ],
+          Hero(
+            tag: 'result_card',
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Center(child: Text("LEGAL ANALYSIS", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kCoffeeMedium, letterSpacing: 1.5))),
+                    const Divider(height: 32),
+                    Text(_caseResult!['section'] ?? "Section Details", style: const TextStyle(fontSize: 24, fontFamily: 'serif', fontWeight: FontWeight.bold, color: kCounselDark)),
+                    const SizedBox(height: 20),
+                    _buildInfoLabel("DESCRIPTION"),
+                    Text(_caseResult!['details'] ?? "N/A", style: const TextStyle(color: Colors.black87, fontSize: 15, height: 1.5)),
+                    const SizedBox(height: 20),
+                    _buildInfoLabel("GENERAL PUNISHMENT"),
+                    Text(_caseResult!['punishment'] ?? "N/A", style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.w600, fontSize: 15)),
+                  ],
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 30),
@@ -339,8 +420,12 @@ class _CheckCaseState extends State<CheckCase> {
           Center(
             child: OutlinedButton(
               onPressed: () => setState(() { _currentStep = 0; _caseController.clear(); }),
-              style: OutlinedButton.styleFrom(side: const BorderSide(color: kCounselDark)),
-              child: const Text("START NEW SEARCH", style: TextStyle(color: kCounselDark)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: kCounselDark),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text("START NEW SEARCH", style: TextStyle(color: kCounselDark, fontWeight: FontWeight.bold)),
             ),
           )
         ],
@@ -352,7 +437,12 @@ class _CheckCaseState extends State<CheckCase> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: kCounselDark.withOpacity(0.1))),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kCounselDark.withOpacity(0.1)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -364,11 +454,11 @@ class _CheckCaseState extends State<CheckCase> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(clause['Details'] ?? "", style: const TextStyle(color: Colors.black54, fontSize: 14)),
+          Text(clause['Details'] ?? "", style: const TextStyle(color: Colors.black54, fontSize: 14, height: 1.4)),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(6)),
             child: Text("Penalty: ${clause['Punishment']}", style: TextStyle(color: Colors.red.shade800, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -426,30 +516,35 @@ class _CheckCaseState extends State<CheckCase> {
     if (_nextQuestionIndex >= _allQuestions.length) return;
 
     setState(() => _isAiTyping = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
+    _scrollToBottom();
+
+    await Future.delayed(const Duration(milliseconds: 1500));
 
     if (!mounted) return;
 
     final question = _allQuestions[_nextQuestionIndex];
     setState(() {
       _isAiTyping = false;
-      _chatMessages.add(ChatMessageModel(
+      final newMsg = ChatMessageModel(
         text: question['text'] ?? "",
         isAi: true,
         showOptions: true,
         questionId: question['id'],
-      ));
+      );
+      _chatMessages.add(newMsg);
+      _listKey.currentState?.insertItem(_chatMessages.length - 1, duration: const Duration(milliseconds: 600));
     });
     _scrollToBottom();
   }
 
   void _handleUserResponse(int qId, String label) {
     setState(() {
-      // Hide options on current question
       int idx = _chatMessages.indexWhere((m) => m.questionId == qId && m.isAi);
       if (idx != -1) _chatMessages[idx] = _chatMessages[idx].copyWith(showOptions: false);
 
-      _chatMessages.add(ChatMessageModel(text: label, isAi: false));
+      final userMsg = ChatMessageModel(text: label, isAi: false);
+      _chatMessages.add(userMsg);
+      _listKey.currentState?.insertItem(_chatMessages.length - 1, duration: const Duration(milliseconds: 400));
       _responses[qId] = label;
     });
 
@@ -465,9 +560,12 @@ class _CheckCaseState extends State<CheckCase> {
   void _finishAiSequence() async {
     setState(() => _isAiTyping = true);
     await Future.delayed(const Duration(milliseconds: 1000));
+    if (!mounted) return;
     setState(() {
       _isAiTyping = false;
-      _chatMessages.add(ChatMessageModel(text: "Thank you. I have all the details. Click below to view the legal analysis.", isAi: true));
+      final finalMsg = ChatMessageModel(text: "Interview complete. I'm finalizing your legal analysis now.", isAi: true);
+      _chatMessages.add(finalMsg);
+      _listKey.currentState?.insertItem(_chatMessages.length - 1, duration: const Duration(milliseconds: 600));
     });
     _scrollToBottom();
   }
@@ -481,7 +579,7 @@ class _CheckCaseState extends State<CheckCase> {
 
       final request = await http.post(Uri.parse('$url/fetch_case_details/'), body: {
         'sid': sid.toString(),
-        "qa": _responses.toString() // Python backend parses this string format
+        "qa": _responses.toString()
       });
 
       if (request.statusCode == 200) {
@@ -500,7 +598,11 @@ class _CheckCaseState extends State<CheckCase> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_chatScrollController.hasClients) {
-        _chatScrollController.animateTo(_chatScrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutQuart,
+        );
       }
     });
   }
