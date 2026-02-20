@@ -41,6 +41,8 @@ import 'package:counsel/user/check_case.dart';
 import 'package:counsel/user/feedback.dart';
 import 'package:flutter/material.dart';
 
+import 'notification.dart';
+
 class UserHome extends StatefulWidget {
   const UserHome({super.key});
 
@@ -173,7 +175,10 @@ class _UserHomeState extends State<UserHome> {
                           title: "Notification",
                           subtitle: "Updates & Alerts",
                           icon: Icons.notifications_none_outlined,
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => UserNotification()));
+
+                          },
                         ),
 
                         // Button 5: View Complaints

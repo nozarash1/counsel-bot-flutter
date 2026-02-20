@@ -11,14 +11,14 @@ const Color kCoffeeMedium = Color(0xFF5D4037);
 const Color kCoffeeLight = Color(0xFF8D6E63);
 const Color kCreamBg = Color(0xFFFDFBF9);
 
-class UserNotification extends StatefulWidget {
-  const UserNotification({super.key});
+class ViewUserRequest extends StatefulWidget {
+  const ViewUserRequest({super.key});
 
   @override
-  State<UserNotification> createState() => _UserNotificationState();
+  State<ViewUserRequest> createState() => _ViewUserRequestState();
 }
 
-class _UserNotificationState extends State<UserNotification> {
+class _ViewUserRequestState extends State<ViewUserRequest> {
   List<dynamic> requestList = [];
   bool isLoading = true;
 
@@ -38,7 +38,7 @@ class _UserNotificationState extends State<UserNotification> {
 
     try {
       final response = await http.post(
-        Uri.parse("$ip/user_notification/"),
+        Uri.parse("$ip/advocate_view_user/"),
         body: {"lid": lid},
       );
 
@@ -197,7 +197,7 @@ class _UserNotificationState extends State<UserNotification> {
                   child: Column(
                     children: [
                       _buildInfoRow(Icons.gavel, "Type", item['Casetype']),
-                      _buildInfoRow(Icons.person, "Advocate ", item['name']),
+                      _buildInfoRow(Icons.person, "Client", item['name']),
                       _buildInfoRow(Icons.email, "Email", item['email']),
                       _buildInfoRow(Icons.phone, "Phone", item['phno']),
                       _buildInfoRow(Icons.location_on, "Place", item['place']),
@@ -265,4 +265,4 @@ class _UserNotificationState extends State<UserNotification> {
       ),
     );
   }
-}  
+}
