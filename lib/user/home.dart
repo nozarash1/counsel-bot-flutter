@@ -39,6 +39,7 @@
 import 'package:counsel/user/advocate_request.dart';
 import 'package:counsel/user/check_case.dart';
 import 'package:counsel/user/feedback.dart';
+import 'package:counsel/user/view_complaint.dart';
 import 'package:flutter/material.dart';
 
 import 'notification.dart';
@@ -186,7 +187,12 @@ class _UserHomeState extends State<UserHome> {
                           title: "Complaints",
                           subtitle: "Review filings",
                           icon: Icons.folder_open_outlined,
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ComplaintPage()));
+
+
+
+                          },
                         ),
 
                         // Button 6: Feedback
