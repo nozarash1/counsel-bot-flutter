@@ -126,6 +126,7 @@ class _ViewAdvDetailsState extends State<ViewAdvDetails> {
   String experience = "";
   String fee = "";
   String id = "";
+  String specialization = "";
 
   bool isLoading = true;
 
@@ -163,6 +164,7 @@ class _ViewAdvDetailsState extends State<ViewAdvDetails> {
           pin = jsonData['Pin'].toString();
           phone = jsonData['Phone'].toString();
           email = jsonData['Email'] ?? "";
+          specialization = jsonData['Specialization'] ?? "";
           gender = jsonData['Gender'] ?? "";
           qualification = jsonData['Qualification'] ?? "";
           experience = jsonData['Experience'].toString();
@@ -262,6 +264,8 @@ class _ViewAdvDetailsState extends State<ViewAdvDetails> {
               decoration: _boxDecoration(),
               child: Column(
                 children: [
+                  _buildInfoRow(Icons.school, "Specialization", specialization),
+                  _buildDivider(),
                   _buildInfoRow(Icons.school, "Qualification", qualification),
                   _buildDivider(),
                   _buildInfoRow(Icons.work_history, "Experience", "$experience Years"),
@@ -305,7 +309,7 @@ class _ViewAdvDetailsState extends State<ViewAdvDetails> {
                 sh.setString('aid', id);
                 sh.setString('name', name);
 
-            Navigator.push(context, MaterialPageRoute(builder: (context)=>AddCaseSe(advocateName:name,)));
+                Navigator.push(context, MaterialPageRoute(builder: (context)=>AddCaseSe(advocateName:name,)));
 
               },
               style: ElevatedButton.styleFrom(

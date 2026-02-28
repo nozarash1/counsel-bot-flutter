@@ -10,8 +10,8 @@ import 'package:http/http.dart' as http;
 const Color kCounselDark = Color(0xFF422E2A); // Dark maroon-brown
 const Color kCounselHeading = Color(0xFFE8DAC5); // Cream/Off-white
 const Color kCreamBg = Color(0xFFFDFBF9); // Paper background
-const Color kUserBubble = Color(0xFF795548); // User chat bubble
-const Color kAiBubble = Color(0xFFEFEBE9); // AI chat bubble
+const Color kUserBubble = Color(0xFFF3F0EA); // Lighter cream for user bubble
+const Color kAiBubble = Colors.transparent; // AI has no background in modern UI
 const Color kCoffeeMedium = Color(0xFF5D4037);
 
 class CheckCase extends StatefulWidget {
@@ -42,7 +42,7 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _currentStep == 0 ? kCounselDark : kCreamBg,
+      backgroundColor: kCreamBg,
       appBar: AppBar(
         title: const Text(
           'THE CHAMBERS',
@@ -50,15 +50,16 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
             fontFamily: 'serif',
             letterSpacing: 1.5,
             fontWeight: FontWeight.bold,
-            color: kCounselHeading,
+            color: kCounselDark,
             fontSize: 16,
           ),
         ),
         centerTitle: true,
-        backgroundColor: kCounselDark,
-        elevation: 2,
+        backgroundColor: kCreamBg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kCounselHeading),
+          icon: const Icon(Icons.arrow_back, color: kCounselDark),
           onPressed: () {
             if (_currentStep > 0) {
               setState(() {
@@ -67,6 +68,7 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
                   _chatMessages.clear();
                   _responses.clear();
                   _nextQuestionIndex = 0;
+                  _caseController.clear();
                 }
               });
             } else {
@@ -76,7 +78,7 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
         ),
       ),
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 400),
         switchInCurve: Curves.easeOut,
         switchOutCurve: Curves.easeIn,
         child: _buildBody(),
@@ -86,10 +88,14 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
 
   Widget _buildBody() {
     switch (_currentStep) {
-      case 0: return _buildLandingInterface();
-      case 1: return _buildChatInterface();
-      case 2: return _buildResultInterface();
-      default: return _buildLandingInterface();
+      case 0:
+        return _buildLandingInterface();
+      case 1:
+        return _buildChatInterface();
+      case 2:
+        return _buildResultInterface();
+      default:
+        return _buildLandingInterface();
     }
   }
 
@@ -98,64 +104,86 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
     return Center(
       key: const ValueKey('landing'),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.gavel_rounded, size: 80, color: kCounselHeading),
-            const SizedBox(height: 40),
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: kCounselDark.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.gavel_rounded, size: 64, color: kCounselDark),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              "How can I assist with your case today?",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+                fontFamily: 'serif',
+                fontWeight: FontWeight.w600,
+                color: kCounselDark,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 48),
+            Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(30),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 5))
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 5),
+                  )
                 ],
+                border: Border.all(color: Colors.grey.shade200),
               ),
-              child: Column(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(
                 children: [
-                  const Text(
-                    "CASE LOOKUP",
-                    style: TextStyle(fontSize: 22, fontFamily: 'serif', fontWeight: FontWeight.bold, color: kCounselDark, letterSpacing: 2.0),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(width: 50, height: 2, color: kCounselDark),
-                  const SizedBox(height: 40),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text("CASE IDENTIFIER", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kCoffeeMedium, letterSpacing: 1.0)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _caseController,
-                    decoration: InputDecoration(
-                      hintText: "Enter Case Number",
-                      hintStyle: TextStyle(color: Colors.grey.shade400),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _caseController,
+                      decoration: InputDecoration(
+                        hintText: "Enter Case Number or Identifier...",
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _isLoading ? null : sendData(),
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : sendData,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kCounselDark,
-                        foregroundColor: kCounselHeading,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: kCounselHeading, strokeWidth: 2))
-                          : const Text("SEARCH CASES", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                  _isLoading
+                      ? const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: kCounselDark, strokeWidth: 2),
+                    ),
+                  )
+                      : Container(
+                    decoration: const BoxDecoration(
+                      color: kCounselDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_upward_rounded, color: kCounselHeading),
+                      onPressed: sendData,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 30),
-            Text("Secure System Access", style: TextStyle(color: kCounselHeading.withOpacity(0.5), fontSize: 11, letterSpacing: 0.5)),
+            const SizedBox(height: 24),
+            Text(
+              "Secure System Access • Counsel Bot",
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12, letterSpacing: 0.5),
+            ),
           ],
         ),
       ),
@@ -173,7 +201,7 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
               AnimatedList(
                 key: _listKey,
                 controller: _chatScrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                 initialItemCount: _chatMessages.length,
                 itemBuilder: (context, index, animation) {
                   return _buildAnimatedBubble(_chatMessages[index], animation);
@@ -181,8 +209,8 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
               ),
               if (_isAiTyping)
                 Positioned(
-                  bottom: 10,
-                  left: 16,
+                  bottom: 20,
+                  left: 24,
                   child: _buildAiTypingIndicator(),
                 ),
             ],
@@ -200,7 +228,7 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
         opacity: animation,
         child: SlideTransition(
           position: animation.drive(
-            Tween<Offset>(begin: const Offset(0.0, 0.2), end: Offset.zero)
+            Tween<Offset>(begin: const Offset(0.0, 0.1), end: Offset.zero)
                 .chain(CurveTween(curve: Curves.easeOutQuart)),
           ),
           child: _buildChatBubble(msg),
@@ -211,134 +239,140 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
 
   Widget _buildChatBubble(ChatMessageModel msg) {
     bool isAi = msg.isAi;
-    return Column(
-      crossAxisAlignment: isAi ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-      children: [
-        Row(
-          mainAxisAlignment: isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (isAi) _buildAiAvatar(),
-            Flexible(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.all(14),
-                margin: EdgeInsets.only(left: isAi ? 8 : 50, right: isAi ? 50 : 8, bottom: 4),
-                decoration: BoxDecoration(
-                  color: isAi ? kAiBubble : kUserBubble,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    topRight: const Radius.circular(16),
-                    bottomLeft: Radius.circular(isAi ? 0 : 16),
-                    bottomRight: Radius.circular(isAi ? 16 : 0),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: isAi
+          ? Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAiAvatar(),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  msg.text,
+                  style: const TextStyle(
+                    color: kCounselDark,
+                    fontSize: 16,
+                    height: 1.5,
                   ),
                 ),
-                child: Text(
-                  msg.text,
-                  style: TextStyle(color: isAi ? kCounselDark : Colors.white, fontSize: 15, height: 1.4),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (isAi && msg.showOptions)
-          Padding(
-            padding: const EdgeInsets.only(left: 44, top: 8, bottom: 16),
-            child: Row(
-              children: [
-                _buildOptionButton(msg.questionId!, "Yes"),
-                const SizedBox(width: 12),
-                _buildOptionButton(msg.questionId!, "No"),
+                if (msg.showOptions)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _buildOptionChip(msg.questionId!, "Yes", Icons.check_circle_outline),
+                        _buildOptionChip(msg.questionId!, "No", Icons.cancel_outlined),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
-        const SizedBox(height: 12),
-      ],
+        ],
+      )
+          : Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: kUserBubble,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Text(
+                msg.text,
+                style: const TextStyle(
+                  color: kCounselDark,
+                  fontSize: 16,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildOptionButton(int qId, String label) {
+  Widget _buildOptionChip(int qId, String label, IconData icon) {
     return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 400),
       tween: Tween(begin: 0.0, end: 1.0),
       builder: (context, value, child) {
         return Opacity(
           opacity: value,
-          child: Transform.scale(
-            scale: 0.8 + (0.2 * value),
-            child: child,
-          ),
+          child: Transform.scale(scale: 0.9 + (0.1 * value), child: child),
         );
       },
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: kCounselDark,
-          elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: kCounselDark, width: 0.5)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: ActionChip(
+        label: Text(label),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, color: kCounselDark),
+        avatar: Icon(icon, color: kCounselDark, size: 18),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.grey.shade300),
         ),
+        elevation: 0,
+        pressElevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         onPressed: () => _handleUserResponse(qId, label),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
   Widget _buildAiAvatar() {
     return Container(
-      width: 32, height: 32,
-      decoration: const BoxDecoration(color: kCounselDark, shape: BoxShape.circle),
-      child: const Icon(Icons.smart_toy_outlined, color: kCounselHeading, size: 18),
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: kCounselDark,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Icon(Icons.gavel_rounded, color: kCounselHeading, size: 20),
     );
   }
 
   Widget _buildAiTypingIndicator() {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 300),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Opacity(opacity: value, child: child);
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            _buildAiAvatar(),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: kAiBubble,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(3, (i) => _buildTypingDot(i)),
-              ),
-            ),
-          ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildAiAvatar(),
+        const SizedBox(width: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(3, (i) => _buildTypingDot(i)),
+          ),
         ),
-      ),
+      ],
     );
   }
 
   Widget _buildTypingDot(int index) {
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 600 + (index * 200)),
-      tween: Tween(begin: 0.2, end: 1.0),
+      tween: Tween(begin: 0.3, end: 1.0),
       builder: (context, value, child) {
         return Container(
           width: 6,
           height: 6,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
           decoration: BoxDecoration(
             color: kCounselDark.withOpacity(value),
             shape: BoxShape.circle,
           ),
         );
       },
-      onEnd: () {}, // Handled by standard loop logic if using AnimationController, but simple enough for Tween
     );
   }
 
@@ -346,26 +380,45 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
     bool allAnswered = _responses.length == _allQuestions.length && _allQuestions.isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: kCounselDark,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+      decoration: BoxDecoration(
+        color: kCreamBg,
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: SizedBox(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         width: double.infinity,
-        height: 55,
-        child: ElevatedButton(
-          onPressed: (allAnswered && !_isLoading) ? fetchResults : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kCounselHeading,
-            foregroundColor: kCounselDark,
-            disabledBackgroundColor: kCounselHeading.withOpacity(0.3),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        height: 56,
+        decoration: BoxDecoration(
+          color: allAnswered ? kCounselDark : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: allAnswered
+              ? [BoxShadow(color: kCounselDark.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
+              : [],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: (allAnswered && !_isLoading) ? fetchResults : null,
+            child: Center(
+              child: _isLoading
+                  ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(color: kCounselHeading, strokeWidth: 2),
+              )
+                  : Text(
+                allAnswered ? "GENERATE LEGAL ANALYSIS" : "AWAITING INTERVIEW COMPLETION...",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  fontSize: 14,
+                  color: allAnswered ? kCounselHeading : Colors.grey.shade500,
+                ),
+              ),
+            ),
           ),
-          child: _isLoading
-              ? const CircularProgressIndicator(color: kCounselDark)
-              : Text(allAnswered ? "SEARCH SECTION" : "COMPLETE THE INTERVIEW",
-              style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
         ),
       ),
     );
@@ -377,10 +430,21 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
 
     return SingleChildScrollView(
       key: const ValueKey('result'),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              _buildAiAvatar(),
+              const SizedBox(width: 16),
+              const Text(
+                "Analysis Complete",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kCounselDark),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           Hero(
             tag: 'result_card',
             child: Container(
@@ -388,44 +452,75 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))
+                ],
               ),
               child: Material(
                 color: Colors.transparent,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Center(child: Text("LEGAL ANALYSIS", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kCoffeeMedium, letterSpacing: 1.5))),
-                    const Divider(height: 32),
-                    Text(_caseResult!['section'] ?? "Section Details", style: const TextStyle(fontSize: 24, fontFamily: 'serif', fontWeight: FontWeight.bold, color: kCounselDark)),
-                    const SizedBox(height: 20),
+                    Text(
+                      _caseResult!['section'] ?? "Section Details",
+                      style: const TextStyle(fontSize: 26, fontFamily: 'serif', fontWeight: FontWeight.bold, color: kCounselDark),
+                    ),
+                    const SizedBox(height: 24),
                     _buildInfoLabel("DESCRIPTION"),
-                    Text(_caseResult!['details'] ?? "N/A", style: const TextStyle(color: Colors.black87, fontSize: 15, height: 1.5)),
-                    const SizedBox(height: 20),
+                    Text(
+                      _caseResult!['details'] ?? "N/A",
+                      style: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.6),
+                    ),
+                    const SizedBox(height: 24),
                     _buildInfoLabel("GENERAL PUNISHMENT"),
-                    Text(_caseResult!['punishment'] ?? "N/A", style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.w600, fontSize: 15)),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade100),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.red.shade800, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _caseResult!['punishment'] ?? "N/A",
+                              style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.w600, fontSize: 15),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 32),
           if (_caseResult!['data'] != null && (_caseResult!['data'] as List).isNotEmpty) ...[
-            const Text("APPLICABLE SUBSECTIONS", style: TextStyle(color: kCounselDark, fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 13)),
+            const Text("Applicable Subsections", style: TextStyle(color: kCounselDark, fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 16),
             ...(_caseResult!['data'] as List).map((clause) => _buildSubsectionCard(clause)),
           ],
           const SizedBox(height: 40),
           Center(
-            child: OutlinedButton(
-              onPressed: () => setState(() { _currentStep = 0; _caseController.clear(); }),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: kCounselDark),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            child: TextButton.icon(
+              onPressed: () => setState(() {
+                _currentStep = 0;
+                _caseController.clear();
+                _chatMessages.clear();
+                _responses.clear();
+                _nextQuestionIndex = 0;
+              }),
+              icon: const Icon(Icons.refresh, color: kCounselDark),
+              label: const Text("Start New Inquiry", style: TextStyle(color: kCounselDark, fontWeight: FontWeight.bold, fontSize: 16)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: const Text("START NEW SEARCH", style: TextStyle(color: kCounselDark, fontWeight: FontWeight.bold)),
             ),
           )
         ],
@@ -436,31 +531,32 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
   Widget _buildSubsectionCard(dynamic clause) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kCounselDark.withOpacity(0.1)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.article_rounded, color: kCounselDark, size: 20),
-              const SizedBox(width: 10),
-              Expanded(child: Text(clause['Subsection'] ?? "", style: const TextStyle(color: kCounselDark, fontWeight: FontWeight.bold, fontSize: 16))),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: kCreamBg, borderRadius: BorderRadius.circular(6)),
+                child: const Icon(Icons.article_outlined, color: kCounselDark, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(clause['Subsection'] ?? "", style: const TextStyle(color: kCounselDark, fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          Text(clause['Details'] ?? "", style: const TextStyle(color: Colors.black54, fontSize: 14, height: 1.4)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(6)),
-            child: Text("Penalty: ${clause['Punishment']}", style: TextStyle(color: Colors.red.shade800, fontSize: 12, fontWeight: FontWeight.bold)),
-          ),
+          Text(clause['Details'] ?? "", style: const TextStyle(color: Colors.black87, fontSize: 15, height: 1.5)),
+          const SizedBox(height: 16),
+          Text("Penalty: ${clause['Punishment']}", style: TextStyle(color: Colors.red.shade800, fontSize: 14, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -468,12 +564,12 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
 
   Widget _buildInfoLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kCoffeeMedium, letterSpacing: 0.5)),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.0)),
     );
   }
 
-  // ---------------- LOGIC & API CALLS ----------------
+  // ---------------- LOGIC & API CALLS (Original implementation restored) ----------------
 
   void sendData() async {
     String ccase = _caseController.text.trim();
@@ -518,7 +614,7 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
     setState(() => _isAiTyping = true);
     _scrollToBottom();
 
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 1200));
 
     if (!mounted) return;
 
@@ -532,7 +628,7 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
         questionId: question['id'],
       );
       _chatMessages.add(newMsg);
-      _listKey.currentState?.insertItem(_chatMessages.length - 1, duration: const Duration(milliseconds: 600));
+      _listKey.currentState?.insertItem(_chatMessages.length - 1, duration: const Duration(milliseconds: 400));
     });
     _scrollToBottom();
   }
@@ -563,9 +659,9 @@ class _CheckCaseState extends State<CheckCase> with TickerProviderStateMixin {
     if (!mounted) return;
     setState(() {
       _isAiTyping = false;
-      final finalMsg = ChatMessageModel(text: "Interview complete. I'm finalizing your legal analysis now.", isAi: true);
+      final finalMsg = ChatMessageModel(text: "Interview complete. I'm finalizing your legal analysis now. Please press 'Generate Legal Analysis' below.", isAi: true);
       _chatMessages.add(finalMsg);
-      _listKey.currentState?.insertItem(_chatMessages.length - 1, duration: const Duration(milliseconds: 600));
+      _listKey.currentState?.insertItem(_chatMessages.length - 1, duration: const Duration(milliseconds: 400));
     });
     _scrollToBottom();
   }

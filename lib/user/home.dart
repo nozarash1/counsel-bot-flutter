@@ -1,48 +1,13 @@
-// import 'package:counsel/user/advocate_request.dart';
-// import 'package:counsel/user/check_case.dart';
-// import 'package:counsel/user/feedback.dart';
-// import 'package:flutter/material.dart';
-//
-// class UserHome extends StatefulWidget {
-//   const UserHome({super.key});
-//
-//   @override
-//   State<UserHome> createState() => _UserHomeState();
-// }
-//
-// class _UserHomeState extends State<UserHome> {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: Text("Userhome"),),
-//     body: Center(child: Column(children: [
-//       ElevatedButton(onPressed: (){
-//         Navigator.push(context, MaterialPageRoute(builder: (context)=>check_case()));
-//
-//         }, child: Text("Check Case")),
-//       ElevatedButton(onPressed: (){}, child: Text("History")),
-//       ElevatedButton(onPressed: (){
-//
-//         Navigator.push(context, MaterialPageRoute(builder: (context)=>view_advocate()));
-//
-//       }, child: Text("Advocates")),
-//       ElevatedButton(onPressed: (){}, child: Text("Notification")),
-//       ElevatedButton(onPressed: (){}, child: Text("View Complaints")),
-//       ElevatedButton(onPressed: (){ Navigator.push(context, MaterialPageRoute(builder: (context)=>feedback()));}, child: Text("Feedback")),
-//       ElevatedButton(onPressed: (){}, child: Text("Logout")),
-//
-//     ],),),
-//     );
-//   }
-// }
-
 import 'package:counsel/user/advocate_request.dart';
 import 'package:counsel/user/check_case.dart';
 import 'package:counsel/user/feedback.dart';
 import 'package:counsel/user/view_complaint.dart';
 import 'package:flutter/material.dart';
-
 import 'notification.dart';
+
+// Imports for Logout
+import 'package:shared_preferences/shared_preferences.dart';
+import '../login.dart'; // Ensure this points to your actual login page file
 
 class UserHome extends StatefulWidget {
   const UserHome({super.key});
@@ -178,7 +143,6 @@ class _UserHomeState extends State<UserHome> {
                           icon: Icons.notifications_none_outlined,
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => UserNotification()));
-
                           },
                         ),
 
@@ -189,9 +153,6 @@ class _UserHomeState extends State<UserHome> {
                           icon: Icons.folder_open_outlined,
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => ComplaintPage()));
-
-
-
                           },
                         ),
 
@@ -213,8 +174,32 @@ class _UserHomeState extends State<UserHome> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // Logout logic here
+                      onPressed: () async {
+                        SharedPreferences prefs = await SharedPreferences.getInstance();
+
+                        // 1. Save the server URLs so we don't lose connection
+                        String? serverUrl = prefs.getString('url');
+                        String? imgUrl = prefs.getString('img_url');
+
+                        // 2. Clear all user session data (logs them out safely)
+                        await prefs.clear();
+
+                        // 3. Put the URLs back into storage
+                        if (serverUrl != null) {
+                          await prefs.setString('url', serverUrl);
+                        }
+                        if (imgUrl != null) {
+                          await prefs.setString('img_url', imgUrl);
+                        }
+
+                        // Navigate back to Login and clear the stack
+                        if (mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                                (Route<dynamic> route) => false,
+                          );
+                        }
                       },
                       icon: Icon(Icons.logout, size: 18, color: _primaryBrown),
                       label: Text(

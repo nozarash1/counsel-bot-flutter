@@ -1,9 +1,14 @@
-
+import 'package:counsel/advocate/view_complaint.dart';
 import 'package:counsel/advocate/view_user_requests.dart';
 import 'package:counsel/user/advocate_request.dart';
 import 'package:counsel/user/check_case.dart';
 import 'package:counsel/user/feedback.dart';
 import 'package:flutter/material.dart';
+import 'manage_specialization.dart';
+
+// NEW IMPORTS FOR LOGOUT
+import 'package:shared_preferences/shared_preferences.dart';
+import '../login.dart'; // Adjust this path if your login.dart is located elsewhere
 
 class AdvocateHome extends StatefulWidget {
   const AdvocateHome({super.key});
@@ -113,6 +118,22 @@ class _AdvocateHomeState extends State<AdvocateHome> {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => ViewUserRequest()));
                           },
                         ),
+                        _buildMenuCard(
+                          title: "Complaints",
+                          subtitle: "Review Fillings",
+                          icon: Icons.folder_open_outlined,
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => AdvocateComplaintPage()));
+                          },
+                        ),
+                        _buildMenuCard(
+                          title: "Specialization",
+                          subtitle: "Review Fillings",
+                          icon: Icons.folder_open_outlined,
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ManageSpecializationPage()));
+                          },
+                        ),
 
 
                       ],
@@ -124,8 +145,32 @@ class _AdvocateHomeState extends State<AdvocateHome> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // Logout logic here
+                      onPressed: () async {
+                        SharedPreferences prefs = await SharedPreferences.getInstance();
+
+                        // 1. Save the server URLs so we don't lose connection
+                        String? serverUrl = prefs.getString('url');
+                        String? imgUrl = prefs.getString('img_url');
+
+                        // 2. Clear all user session data
+                        await prefs.clear();
+
+                        // 3. Put the URLs back into storage
+                        if (serverUrl != null) {
+                          await prefs.setString('url', serverUrl);
+                        }
+                        if (imgUrl != null) {
+                          await prefs.setString('img_url', imgUrl);
+                        }
+
+                        // Navigate back to Login and clear the stack
+                        if (mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                                (Route<dynamic> route) => false,
+                          );
+                        }
                       },
                       icon: Icon(Icons.logout, size: 18, color: _primaryBrown),
                       label: Text(
