@@ -182,6 +182,6 @@ If you plan to use it in production, consider adding an appropriate open-source 
 
 ## Author
 
-Developed by **Zain Muhammed**
+Developed by **Zain Muhammed** , **Mohammed Rashin K** , **Sagar p** and **Vignesh V Manoj**
 
 GitHub: https://github.com/nozarash1
